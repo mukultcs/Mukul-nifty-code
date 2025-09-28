@@ -1,0 +1,8 @@
+pandas
+numpy
+yfinance
+joblib
+scikit-learn
+lightgbm
+ta
+pytz
