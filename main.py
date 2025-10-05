@@ -43,6 +43,54 @@ def send_email(subject, body):
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
         server.send_message(msg)
 
+
+
+# -----------------------
+# Train model if missing
+# -----------------------
+def train_model_if_missing():
+    if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+        return
+
+    print("Training new ML model (first run)...")
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.ensemble import RandomForestClassifier
+    from lightgbm import LGBMClassifier
+
+    data_all = []
+    for ticker in NIFTY50:
+        try:
+            df = yf.download(ticker, period="1y", interval="1d", progress=False)
+            df = df.dropna()
+            df["return_next_day"] = df["Close"].pct_change().shift(-1)
+            df["target"] = np.where(df["return_next_day"] > 0.03, 1, 
+                             np.where(df["return_next_day"] < -0.03, -1, 0))
+            df = df.dropna()
+            X = df[["Open", "High", "Low", "Close", "Volume"]]
+            y = df["target"]
+            data_all.append((X, y))
+        except Exception as e:
+            print(f"Skipping {ticker}: {e}")
+
+    if not data_all:
+        print("No data for training.")
+        return
+
+    X_full = pd.concat([d[0] for d in data_all])
+    y_full = pd.concat([d[1] for d in data_all])
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_full)
+
+    model = LGBMClassifier(n_estimators=300, learning_rate=0.05)
+    model.fit(X_scaled, y_full)
+
+    joblib.dump(model, MODEL_PATH)
+    joblib.dump(scaler, SCALER_PATH)
+    print("✅ Model training complete.")
+
+
 # -----------------------
 # Prediction + logging
 # -----------------------
@@ -118,8 +166,10 @@ def send_daily_report():
 # Main
 # -----------------------
 if __name__ == "__main__":
+    train_model_if_missing()
     now = datetime.now(pytz.timezone("Asia/Kolkata"))
-    if now.hour == 15 and now.minute >= 30:  # At/after 3:30 PM IST
+    if now.hour == 15 and now.minute >= 30:
         send_daily_report()
     else:
         run_predictions()
+
