@@ -101,6 +101,8 @@ def run_predictions():
 
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
+    if len(scaler.shape) > 2:
+    scaler = scaler.reshape(scaler.shape[0], -1)
 
     now = datetime.now(pytz.timezone("Asia/Kolkata"))
     rows = []
