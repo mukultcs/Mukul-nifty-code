@@ -101,8 +101,11 @@ def run_predictions():
 
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
-    if len(scaler.shape) > 2:
-    	scaler = scaler.reshape(scaler.shape[0], -1)
+	X = [[latest["Open"], latest["High"], latest["Low"], latest["Close"], latest["Volume"]]]
+	X = pd.DataFrame(X, columns=["Open", "High", "Low", "Close", "Volume"])
+	X_scaled = scaler.transform(X)
+	pred = model.predict(X_scaled)[0]
+
 
     now = datetime.now(pytz.timezone("Asia/Kolkata"))
     rows = []
