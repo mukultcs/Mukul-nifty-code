@@ -101,11 +101,6 @@ def run_predictions():
 
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
-	X = [[latest["Open"], latest["High"], latest["Low"], latest["Close"], latest["Volume"]]]
-	X = pd.DataFrame(X, columns=["Open", "High", "Low", "Close", "Volume"])
-	X_scaled = scaler.transform(X)
-	pred = model.predict(X_scaled)[0]
-
 
     now = datetime.now(pytz.timezone("Asia/Kolkata"))
     rows = []
@@ -114,12 +109,14 @@ def run_predictions():
         try:
             df = yf.download(ticker, period="2d", interval="5m", progress=False)
             df = df.dropna()
-            if df.empty: 
+            if df.empty:
                 continue
 
             latest = df.iloc[-1]
-            X = scaler.transform([[latest["Open"], latest["High"], latest["Low"], latest["Close"], latest["Volume"]]])
-            pred = model.predict(X)[0]
+            X = [[latest["Open"], latest["High"], latest["Low"], latest["Close"], latest["Volume"]]]
+            X = pd.DataFrame(X, columns=["Open", "High", "Low", "Close", "Volume"])
+            X_scaled = scaler.transform(X)
+            pred = model.predict(X_scaled)[0]
 
             if pred != 0:  # 1 = BUY, -1 = SELL
                 signal = "BUY" if pred == 1 else "SELL"
